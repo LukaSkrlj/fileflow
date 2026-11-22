@@ -1,4 +1,4 @@
-.PHONY: build test test-integration run bench-put bench-get bench-range profile lint
+.PHONY: build test test-integration run web bench-put bench-get bench-range profile lint
 
 build:
 	go build -o bin/ ./cmd/...
@@ -14,6 +14,10 @@ test-integration:
 
 run: build
 	FILEFLOW_LOG_FORMAT=text FILEFLOW_LOCAL_ROOT=./data ./bin/fileflow
+
+# Browser UI on :4200, proxied to fileflow on :8080. Needs Node 24 (see web/.nvmrc).
+web:
+	cd web && npm install && npm start
 
 bench-put: build
 	./bin/ffbench -op put -n 50 -c 8 -size 64MiB -kind agent

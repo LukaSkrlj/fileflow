@@ -1,0 +1,113 @@
+<header>
+  <h1>fileflow</h1>
+  <span class="badge" [class]="ready()">
+    {{ ready() === 'ready' ? 'backend ready' : ready() === 'down' ? 'backend not ready' : 'checking…' }}
+  </span>
+</header>
+
+<main>
+  <section
+    class="drop"
+    [class.over]="dragging()"
+    (dragover)="$event.preventDefault(); dragging.set(true)"
+    (dragleave)="dragging.set(false)"
+    (drop)="onDrop($event)"
+  >
+    <label class="field">
+      Upload to
+      <input [value]="uploadPrefix()" (input)="uploadPrefix.set($any($event.target).value)" spellcheck="false" />
+    </label>
+    <p>Drop files here, or <label class="link">choose files<input type="file" multiple hidden (change)="uploadAll($any($event.target).files)" /></label></p>
+  </section>
+
+  @if (transfers().length) {
+    <section>
+      <div class="row">
+        <h2>Transfers</h2>
+        <button class="ghost" (click)="clearFinished()">Clear finished</button>
+      </div>
+      @for (t of transfers(); track t) {
+        <article class="transfer" [class]="t.status()">
+          <div class="row">
+            <strong>{{ t.kind === 'upload' ? '⇡ upload' : '⇣ stream' }} {{ t.key }}</strong>
+            @if (t.status() === 'running') {
+              <button class="ghost" (click)="t.cancel()">Cancel</button>
+            } @else {
+              <span class="status">{{ t.status() }}</span>
+            }
+          </div>
+          <progress [value]="t.loaded()" [max]="t.total() || 1"></progress>
+          <div class="row stats">
+            <span>{{ formatBytes(t.loaded()) }} / {{ formatBytes(t.total()) }} ({{ t.percent().toFixed(0) }}%)</span>
+            <span>
+              now {{ formatRate(t.speeds().at(-1) ?? 0) }} · avg {{ formatRate(t.avgSpeed()) }}
+              @if (t.ttfbMs() !== null) { · first byte {{ t.ttfbMs()!.toFixed(0) }} ms }
+            </span>
+          </div>
+          <svg class="spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-label="speed over time">
+            <polyline [attr.points]="sparkline(t.speeds(), 300, 40)" />
+          </svg>
+          @if (t.committing()) {
+            <p class="detail">All bytes sent; waiting for the server to verify and commit…</p>
+          }
+          @if (t.detail()) {
+            <p class="detail">{{ t.detail() }}</p>
+          }
+        </article>
+      }
+    </section>
+  }
+
+  @if (playing(); as f) {
+    <section class="player">
+      <div class="row">
+        <h2>Playing {{ f.key }}</h2>
+        <button class="ghost" (click)="playing.set(null)">Close</button>
+      </div>
+      @switch (mediaKind(f)) {
+        @case ('video') { <video controls autoplay [src]="fileUrl(f.key)"></video> }
+        @case ('audio') { <audio controls autoplay [src]="fileUrl(f.key)"></audio> }
+        @case ('image') { <img [src]="fileUrl(f.key)" [alt]="f.key" /> }
+      }
+      <p class="detail">The browser fetches this with Range requests, so seeking only downloads the part you jump to.</p>
+    </section>
+  }
+
+  <section>
+    <div class="row">
+      <h2>Files</h2>
+      <form class="row" (submit)="$event.preventDefault(); refresh()">
+        <input placeholder="prefix filter, e.g. uploads/" [value]="prefix()" (input)="prefix.set($any($event.target).value)" spellcheck="false" />
+        <button>Refresh</button>
+      </form>
+    </div>
+    @if (listError()) {
+      <p class="error">{{ listError() }}</p>
+    }
+    <table>
+      <thead>
+        <tr><th>Key</th><th>Size</th><th>Type</th><th>Modified</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (f of files(); track f.key) {
+          <tr>
+            <td class="key">{{ f.key }}</td>
+            <td>{{ formatBytes(f.size) }}</td>
+            <td>{{ f.content_type || '—' }}</td>
+            <td>{{ f.mod_time | date: 'short' }}</td>
+            <td class="actions">
+              @if (mediaKind(f)) {
+                <button (click)="playing.set(f)">Play</button>
+              }
+              <button (click)="stream(f)" title="Read through a stream and measure speed; nothing is saved">Stream</button>
+              <a class="button" [href]="fileUrl(f.key)" download>Save</a>
+              <button class="danger" (click)="remove(f)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="empty">No files{{ prefix() ? ' under ' + prefix() : '' }}.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+</main>

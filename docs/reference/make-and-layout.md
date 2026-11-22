@@ -8,6 +8,7 @@
 | `make test` | `go test -race ./...` |
 | `make test-integration` | Conformance suite in `./internal/storage/...` against SeaweedFS (`:8333`) and Azurite (`:10000`) |
 | `make run` | Build, then start the server with `FILEFLOW_LOG_FORMAT=text FILEFLOW_LOCAL_ROOT=./data` |
+| `make web` | `npm install && npm start` in `web/`: browser UI on `:4200`, proxied to `:8080` |
 | `make bench-put` | `ffbench -op put -n 50 -c 8 -size 64MiB -kind agent` |
 | `make bench-get` | `ffbench -op get -n 500 -c 32 -size 1MiB -keys 50 -kind human` |
 | `make bench-range` | `ffbench -op get -n 200 -c 16 -size 256MiB -keys 4 -range 8MiB -kind agent` |
@@ -51,4 +52,5 @@ internal/storage/s3/     S3-compatible backend (aws-sdk-go-v2)
 internal/storage/azure/  Azure Blob backend (azblob)
 internal/storage/storagetest/  conformance suite
 deploy/prometheus.yml    Prometheus scrape config for compose
+web/                     Angular 22 browser UI (uploads, streamed downloads, media playback)
 ```

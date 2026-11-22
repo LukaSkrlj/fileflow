@@ -25,6 +25,7 @@ Recipes for a task you already have in mind.
 - [Verify uploads with a SHA-256 checksum](how-to/verify-uploads.md)
 - [Resume or split a download with Range requests](how-to/resume-downloads.md)
 - [Trace a request across logs](how-to/trace-a-request.md)
+- [Watch uploads, downloads and streaming in the browser](how-to/use-the-web-ui.md)
 - [Benchmark and profile the server](how-to/benchmark-and-profile.md)
 - [Run behind a load balancer or in Kubernetes](how-to/run-behind-a-load-balancer.md)
 - [Tune memory and throughput for large uploads](how-to/tune-large-uploads.md)

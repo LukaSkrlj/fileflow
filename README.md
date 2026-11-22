@@ -17,6 +17,7 @@ curl -T ./somefile -H "X-Client-Kind: human" localhost:8080/v1/files/users/luka/
 curl -O localhost:8080/v1/files/users/luka/somefile
 curl -H "Range: bytes=0-99" localhost:8080/v1/files/users/luka/somefile
 make bench-put bench-get
+make web             # browser UI on :4200 (needs Node 24, see docs/how-to/use-the-web-ui.md)
 ```
 
 Full stack with an S3 backend (SeaweedFS) or Azure Blob (Azurite):

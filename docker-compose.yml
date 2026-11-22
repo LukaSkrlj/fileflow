@@ -1,0 +1,62 @@
+# Local stack. Pick a backend for fileflow with FILEFLOW_BACKEND (default s3):
+#
+#   docker compose up --build                       # fileflow + SeaweedFS (S3 API)
+#   FILEFLOW_BACKEND=azure docker compose up --build # fileflow + Azurite (Azure Blob API)
+#   docker compose --profile observability up       # + Prometheus on :9091
+#   docker compose --profile cache up               # + Redis (phase 2)
+#
+# Note: MinIO is not used here. Its community edition stopped publishing
+# images in Oct 2025 and the project is in maintenance mode. SeaweedFS is a
+# maintained Apache-2.0 S3-compatible store (and a candidate for the
+# "custom built" self-hosted option on Hetzner).
+
+services:
+  fileflow:
+    build: .
+    ports: ["8080:8080", "9090:9090"]
+    environment:
+      FILEFLOW_BACKEND: ${FILEFLOW_BACKEND:-s3}
+      FILEFLOW_LOG_FORMAT: json
+      FILEFLOW_PART_SIZE: 16MiB
+      FILEFLOW_PART_CONCURRENCY: "4"
+      FILEFLOW_DRAIN_DELAY: 1s
+      # S3-compatible (SeaweedFS here; Hetzner/AWS/R2 in real deployments)
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_BUCKET: fileflow
+      S3_ACCESS_KEY: dev
+      S3_SECRET_KEY: devsecret
+      S3_PATH_STYLE: "true"
+      S3_CREATE_BUCKET: "true"
+      # Azure Blob via Azurite (well-known dev account key, not a secret)
+      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AZURE_STORAGE_CONTAINER: fileflow
+      AZURE_CREATE_CONTAINER: "true"
+    depends_on: [seaweedfs, azurite]
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: server -s3 -dir=/data
+    ports: ["8333:8333"]
+    volumes: [seaweed:/data]
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --location /data
+    ports: ["10000:10000"]
+    volumes: [azurite:/data]
+
+  redis:
+    profiles: [cache]
+    image: redis:7-alpine
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports: ["6379:6379"]
+
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:latest
+    volumes: ["./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9091:9090"]
+
+volumes:
+  seaweed:
+  azurite:
